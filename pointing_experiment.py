@@ -10,6 +10,7 @@ import random
 import math
 import configparser
 import json
+from pointing_technique import Improvement
 
 """ .ini file looks like this:
 [default]
@@ -17,20 +18,22 @@ user = 1
 radius = 50 75 100 125
 repetitions = 5
 amount = 20
+improvement = True
 
 .json file looks like this:
-{"user": 1, "radius": [50, 75, 100, 125], "repetitions" : 5, "amount": 20}
+{"user": 1, "radius": [50, 75, 100, 125], "repetitions" : 5, "amount": 20, "improvement": true}
 """
 
 
 class ExperimentModel(object):
     # init all necessary variables
-    def __init__(self, user_id, radius, repetitions, amount):
+    def __init__(self, user_id, radius, repetitions, amount, improvement):
         self.timer = QtCore.QTime()
         self.user_id = user_id
         self.radius = radius
         self.repetitions = repetitions
         self.amount = amount
+        self.improvement = improvement
         self.start_pointer = ()
         self.conditions = (1, 2, 3)
         self.forms = []
@@ -43,7 +46,7 @@ class ExperimentModel(object):
         self.cycle = 0
         # self.mouse_moving = False
         sys.stdout.write("timestamp (ISO); user_id; condition; radius; amount; completion_time (ms); "
-                         "start_pointer_x, start_pointer_y, end_pointer_x, end_pointer_y, error \n")
+                         "start_pointer_x, start_pointer_y, end_pointer_x, end_pointer_y, error, improvement \n")
 
     # returns the current state. Includes condition, radius and amount of forms
     def current_state(self):
@@ -52,19 +55,19 @@ class ExperimentModel(object):
         else:
             return self.forms[self.cycle]
 
+    def improvement_active(self):
+        return self.improvement
+
     # sets coordinates for the starting position of the cursor
     def set_start_pointer(self, position):
         self.start_pointer = position
 
     # registers the click and if it is correct
     def register_click(self, target_pos, click_pos):
-        dist = math.sqrt((target_pos[0] - click_pos[0]) * (target_pos[0] - click_pos[0]) +
-                         (target_pos[1] - click_pos[1]) * (target_pos[1] - click_pos[1]))
+        dist = math.dist(target_pos, click_pos)
         if dist > self.current_state()[1]:
-            # click_offset = (target_pos[0] - click_pos[0], target_pos[1] - click_pos[1])
             error = False
         else:
-            # click_offset = (target_pos[0] - click_pos[0], target_pos[1] - click_pos[1])
             error = True
         self.log_experiment(self.stop_measurement(), error, self.start_pointer, click_pos)
         self.cycle += 1
@@ -73,10 +76,9 @@ class ExperimentModel(object):
     def log_experiment(self, time, error, start_pointer, end_pointer):
         conditions, radius, amount = self.current_state()
         timestamp = QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
-        sys.stdout.write("%s; %s; %d; %d; %d; %d; %d; %d; %d; %d; %s \n" % (timestamp, self.user_id, conditions,
-                                                                            radius, amount, time, start_pointer[0],
-                                                                            start_pointer[1], end_pointer[0],
-                                                                            end_pointer[1], error))
+        sys.stdout.write("%s; %s; %d; %d; %d; %d; %d; %d; %d; %d; %s; %s \n"
+                         % (timestamp, self.user_id, conditions, radius, amount, time, start_pointer[0],
+                            start_pointer[1], end_pointer[0], end_pointer[1], error, self.improvement))
 
     # start time measurement
     def start_measurement(self):
@@ -100,9 +102,9 @@ class ExperimentTest(QtWidgets.QWidget):
     def __init__(self, model):
         super().__init__()
         self.model = model
-        # self.start_pos = (100, 100)
         self.target_x = 0
         self.target_y = 0
+        self.forms_list = []
         # colors: green, red, yellow
         self.colors = [(60, 168, 50), (168, 50, 50), (255, 215, 0)]
         self.forms = ['rect', 'triangle', 'circle']
@@ -121,11 +123,23 @@ class ExperimentTest(QtWidgets.QWidget):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self.model.register_click((self.target_x, self.target_y), (event.x(), event.y()))
+            self.forms_list = []
             self.update()
 
-    # def mouseMoveEvent(self, event):
-    #    if (abs(event.x() - self.start_pos[0]) > 5) or (abs(event.y() - self.start_pos[1]) > 5):
-    #        self.model.start_measurement()
+    def mouseMoveEvent(self, event):
+        if self.model.improvement_active:
+            radius = self.model.current_state()[1]
+            improvement = Improvement(self.forms_list, radius)
+            curr_pos = (QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).x(),
+                        QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).y())
+            print(curr_pos)
+            target_pos = (self.target_x,self.target_y)
+            print(target_pos)
+            new_pointer_pos = Improvement.filter(improvement, target_pos, curr_pos)
+            print(new_pointer_pos)
+            # screen = QtGui.QGuiApplication.primaryScreen()
+            point = QPoint(new_pointer_pos[0], new_pointer_pos[1])
+            QtGui.QCursor.setPos(QWidget.mapToGlobal(self, point))
 
     # paintEvent gets starting position of the cursor and draws the instruction and forms
     def paintEvent(self, event):
@@ -166,6 +180,7 @@ class ExperimentTest(QtWidgets.QWidget):
         for i in range(amount):
             x = random.randrange(100, 1800, 20)
             y = random.randrange(100, 800, 20)
+            self.forms_list.append((x, y))
             qp.setPen(Qt.SolidLine)
             if i == target:
                 self.target_x = x
@@ -182,6 +197,7 @@ class ExperimentTest(QtWidgets.QWidget):
             color = random.choice(self.colors)
             x = random.randrange(100, 1800, 20)
             y = random.randrange(100, 800, 20)
+            self.forms_list.append((x, y))
             qp.setPen(Qt.SolidLine)
             if i == target:
                 self.target_x = x
@@ -199,6 +215,7 @@ class ExperimentTest(QtWidgets.QWidget):
             form = random.choice(self.forms)
             x = random.randrange(100, 1800, 20)
             y = random.randrange(100, 800, 20)
+            self.forms_list.append((x, y))
             qp.setPen(Qt.SolidLine)
             if i == target:
                 self.target_x = x
@@ -212,8 +229,8 @@ class ExperimentTest(QtWidgets.QWidget):
                 elif form == 'triangle':
                     points = [
                         QPoint(x - radius, y - radius),
-                        QPoint(x - radius*2, y - radius),
-                        QPoint(x - radius, y - radius*2),
+                        QPoint(x - radius * 2, y - radius),
+                        QPoint(x - radius, y - radius * 2),
                     ]
                     poly = QPolygon(points)
                     qp.drawPolygon(poly)
@@ -229,6 +246,8 @@ def main():
     # values = get_setup_values(sys.argv[1])
     model = ExperimentModel(*get_setup_values(sys.argv[1]))
     experiment = ExperimentTest(model)
+    # cursor = QtGui.QCursor
+    # experiment.setCursor(cursor)
     sys.exit(app.exec_())
 
 
@@ -238,6 +257,7 @@ def get_setup_values(filename):
     radius = []
     repetitions = 0
     amount = 0
+    improvement = False
     if extension == '.ini':
         config = configparser.ConfigParser()
         config.read(filename)
@@ -248,13 +268,15 @@ def get_setup_values(filename):
             radius.append(int(i))
         repetitions = int(config['default']['repetitions'])
         amount = int(config['default']['amount'])
+        improvement = config['default']['improvement']
     elif extension == '.json':
         json_file = json.loads(open(filename).readline())
         user_id = json_file['user']
         radius = json_file['radius']
         repetitions = json_file['repetitions']
         amount = json_file['amount']
-    return user_id, radius, repetitions, amount
+        improvement = json_file['improvement']
+    return user_id, radius, repetitions, amount, improvement
 
 
 if __name__ == '__main__':
