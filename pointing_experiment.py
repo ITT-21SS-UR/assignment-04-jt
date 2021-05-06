@@ -44,7 +44,6 @@ class ExperimentModel(object):
                 self.forms.append((i, curr_rad, amount))
         random.shuffle(self.forms)
         self.cycle = 0
-        # self.mouse_moving = False
         sys.stdout.write("timestamp (ISO); user_id; condition; radius; amount; completion_time (ms); "
                          "start_pointer_x, start_pointer_y, end_pointer_x, end_pointer_y, error, improvement \n")
 
@@ -82,25 +81,19 @@ class ExperimentModel(object):
 
     # start time measurement
     def start_measurement(self):
-        # if not self.mouse_moving:
         self.timer.start()
-        # self.mouse_moving = True
 
     # stops time measurement
     def stop_measurement(self):
-        # if self.mouse_moving:
         elapsed = self.timer.elapsed()
-        # self.mouse_moving = False
         return elapsed
-
-    # def timestamp(self):
-    #    return QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
 
 
 class ExperimentTest(QtWidgets.QWidget):
     # init all necessary variables
     def __init__(self, model):
         super().__init__()
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.model = model
         self.target_x = 0
         self.target_y = 0
@@ -126,18 +119,15 @@ class ExperimentTest(QtWidgets.QWidget):
             self.forms_list = []
             self.update()
 
+    # when mouse is moved and improvement is active gets the improved coordinates for the cursor
     def mouseMoveEvent(self, event):
         if self.model.improvement_active:
             radius = self.model.current_state()[1]
             improvement = Improvement(self.forms_list, radius)
             curr_pos = (QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).x(),
                         QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).y())
-            print(curr_pos)
-            target_pos = (self.target_x,self.target_y)
-            print(target_pos)
+            target_pos = (self.target_x, self.target_y)
             new_pointer_pos = Improvement.filter(improvement, target_pos, curr_pos)
-            print(new_pointer_pos)
-            # screen = QtGui.QGuiApplication.primaryScreen()
             point = QPoint(new_pointer_pos[0], new_pointer_pos[1])
             QtGui.QCursor.setPos(QWidget.mapToGlobal(self, point))
 
@@ -154,7 +144,6 @@ class ExperimentTest(QtWidgets.QWidget):
 
     # draws the instruction
     def draw_text(self, event, qp):
-        # qp.setPen(QtGui.QColor(168, 34, 3))
         qp.setFont(QtGui.QFont('Decorative', 32))
         self.text = "Click on the BLUE CIRCLE"
         qp.drawText(event.rect(), QtCore.Qt.AlignLeft, self.text)
@@ -246,8 +235,6 @@ def main():
     # values = get_setup_values(sys.argv[1])
     model = ExperimentModel(*get_setup_values(sys.argv[1]))
     experiment = ExperimentTest(model)
-    # cursor = QtGui.QCursor
-    # experiment.setCursor(cursor)
     sys.exit(app.exec_())
 
 
