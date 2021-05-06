@@ -133,7 +133,7 @@ class ExperimentTest(QtWidgets.QWidget):
             curr_pos = (QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).x(),
                         QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).y())
             print(curr_pos)
-            target_pos = (self.target_x,self.target_y)
+            target_pos = (self.target_x, self.target_y)
             print(target_pos)
             new_pointer_pos = Improvement.filter(improvement, target_pos, curr_pos)
             print(new_pointer_pos)
