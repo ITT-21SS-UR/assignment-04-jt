@@ -121,7 +121,7 @@ class ExperimentTest(QtWidgets.QWidget):
 
     # when mouse is moved and improvement is active gets the improved coordinates for the cursor
     def mouseMoveEvent(self, event):
-        if self.model.improvement_active:
+        if self.model.improvement_active():
             radius = self.model.current_state()[1]
             improvement = Improvement(self.forms_list, radius)
             curr_pos = (QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).x(),
