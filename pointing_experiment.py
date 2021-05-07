@@ -44,8 +44,8 @@ class ExperimentModel(object):
                 self.forms.append((i, curr_rad, amount))
         random.shuffle(self.forms)
         self.cycle = 0
-        sys.stdout.write("timestamp (ISO), user_id, condition, diameter, amount, completion_time (ms), "
-                         "start_pointer_x, start_pointer_y, end_pointer_x, end_pointer_y, error, improvement \n")
+        sys.stdout.write("timestamp (ISO),user_id,condition,diameter,amount,completion_time (ms),"
+                         "start_pointer_x,start_pointer_y,end_pointer_x,end_pointer_y,error,improvement\n")
 
     # returns the current state. Includes condition, diameter and amount of forms
     def current_state(self):
@@ -77,7 +77,7 @@ class ExperimentModel(object):
     def log_experiment(self, time, error, start_pointer, end_pointer):
         conditions, diameter, amount = self.current_state()
         timestamp = QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
-        sys.stdout.write("%s, %s, %d, %d, %d, %d, %d, %d, %d, %d, %s, %s \n"
+        sys.stdout.write("%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s\n"
                          % (timestamp, self.user_id, conditions, diameter, amount, time, start_pointer[0],
                             start_pointer[1], end_pointer[0], end_pointer[1], error, self.improvement))
 
