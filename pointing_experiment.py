@@ -15,39 +15,39 @@ from pointing_technique import Improvement
 """ .ini file looks like this:
 [default]
 user = 1
-radius = 50 75 100 125
+diameter = 50 75 100 125
 repetitions = 5
 amount = 20
 improvement = True
 
 .json file looks like this:
-{"user": 1, "radius": [50, 75, 100, 125], "repetitions" : 5, "amount": 20, "improvement": true}
+{"user": 1, "diameter": [50, 75, 100, 125], "repetitions" : 5, "amount": 20, "improvement": true}
 """
 
 
 class ExperimentModel(object):
     # init all necessary variables
-    def __init__(self, user_id, radius, repetitions, amount, improvement):
+    def __init__(self, user_id, diameter, repetitions, amount, improvement):
         self.timer = QtCore.QTime()
         self.user_id = user_id
-        self.radius = radius
+        self.diameter = diameter
         self.repetitions = repetitions
         self.amount = amount
         self.improvement = improvement
         self.start_pointer = ()
         self.conditions = (1, 2, 3)
         self.forms = []
-        # possibilities = list(itertools.product(radius, amount))
+        # possibilities = list(itertools.product(diameter, amount))
         for i in self.conditions:
             for y in range(repetitions):
-                curr_rad = random.choice(radius)
+                curr_rad = random.choice(diameter)
                 self.forms.append((i, curr_rad, amount))
         random.shuffle(self.forms)
         self.cycle = 0
-        sys.stdout.write("timestamp (ISO); user_id; condition; radius; amount; completion_time (ms); "
+        sys.stdout.write("timestamp (ISO), user_id, condition, diameter, amount, completion_time (ms), "
                          "start_pointer_x, start_pointer_y, end_pointer_x, end_pointer_y, error, improvement \n")
 
-    # returns the current state. Includes condition, radius and amount of forms
+    # returns the current state. Includes condition, diameter and amount of forms
     def current_state(self):
         if self.cycle >= len(self.forms):
             return None
@@ -63,20 +63,22 @@ class ExperimentModel(object):
 
     # registers the click and if it is correct
     def register_click(self, target_pos, click_pos):
-        dist = math.dist(target_pos, click_pos)
-        if dist > self.current_state()[1]:
-            error = False
-        else:
+        diameter = self.current_state()[1]
+        middle = (target_pos[0] - (diameter / 2), target_pos[1] - (diameter / 2))
+        dist = math.dist(middle, click_pos)
+        if dist <= diameter / 2:
             error = True
+        else:
+            error = False
         self.log_experiment(self.stop_measurement(), error, self.start_pointer, click_pos)
         self.cycle += 1
 
     # logs all necessary information to stdout
     def log_experiment(self, time, error, start_pointer, end_pointer):
-        conditions, radius, amount = self.current_state()
+        conditions, diameter, amount = self.current_state()
         timestamp = QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
-        sys.stdout.write("%s; %s; %d; %d; %d; %d; %d; %d; %d; %d; %s; %s \n"
-                         % (timestamp, self.user_id, conditions, radius, amount, time, start_pointer[0],
+        sys.stdout.write("%s, %s, %d, %d, %d, %d, %d, %d, %d, %d, %s, %s \n"
+                         % (timestamp, self.user_id, conditions, diameter, amount, time, start_pointer[0],
                             start_pointer[1], end_pointer[0], end_pointer[1], error, self.improvement))
 
     # start time measurement
@@ -122,8 +124,8 @@ class ExperimentTest(QtWidgets.QWidget):
     # when mouse is moved and improvement is active gets the improved coordinates for the cursor
     def mouseMoveEvent(self, event):
         if self.model.improvement_active():
-            radius = self.model.current_state()[1]
-            improvement = Improvement(self.forms_list, radius)
+            diameter = self.model.current_state()[1]
+            improvement = Improvement(self.forms_list, diameter)
             curr_pos = (QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).x(),
                         QWidget.mapFromGlobal(self, QtGui.QCursor.pos()).y())
             target_pos = (self.target_x, self.target_y)
@@ -152,19 +154,19 @@ class ExperimentTest(QtWidgets.QWidget):
     def draw_forms(self, qp):
         self.model.start_measurement()
         if self.model.current_state() is not None:
-            conditions, radius, amount = self.model.current_state()
+            conditions, diameter, amount = self.model.current_state()
         else:
             sys.stderr.write("Finished!")
             sys.exit(1)
         if conditions == 1:
-            self.draw_first_cond(qp, amount, radius)
+            self.draw_first_cond(qp, amount, diameter)
         elif conditions == 2:
-            self.draw_second_cond(qp, amount, radius)
+            self.draw_second_cond(qp, amount, diameter)
         elif conditions == 3:
-            self.draw_third_cond(qp, amount, radius)
+            self.draw_third_cond(qp, amount, diameter)
 
     # draws the first condition with circles without color except the target
-    def draw_first_cond(self, qp, amount, radius):
+    def draw_first_cond(self, qp, amount, diameter):
         target = random.randrange(0, amount)
         for i in range(amount):
             x = random.randrange(100, 1800, 20)
@@ -177,10 +179,10 @@ class ExperimentTest(QtWidgets.QWidget):
                 qp.setBrush(QtGui.QColor(54, 50, 168))
             else:
                 qp.setBrush(QtGui.QColor(0, 0, 0, 0))
-            qp.drawEllipse(x - radius, y - radius, radius, radius)
+            qp.drawEllipse(x - diameter, y - diameter, diameter, diameter)
 
     # draws the second condition with circles in multiple colors
-    def draw_second_cond(self, qp, amount, radius):
+    def draw_second_cond(self, qp, amount, diameter):
         target = random.randrange(0, amount)
         for i in range(amount):
             color = random.choice(self.colors)
@@ -194,10 +196,10 @@ class ExperimentTest(QtWidgets.QWidget):
                 qp.setBrush(QtGui.QColor(54, 50, 168))
             else:
                 qp.setBrush(QtGui.QColor(color[0], color[1], color[2]))
-            qp.drawEllipse(x - radius, y - radius, radius, radius)
+            qp.drawEllipse(x - diameter, y - diameter, diameter, diameter)
 
     # draws the third condition with multiple different forms and colors
-    def draw_third_cond(self, qp, amount, radius):
+    def draw_third_cond(self, qp, amount, diameter):
         target = random.randrange(0, amount)
         for i in range(amount):
             color = random.choice(self.colors)
@@ -210,21 +212,21 @@ class ExperimentTest(QtWidgets.QWidget):
                 self.target_x = x
                 self.target_y = y
                 qp.setBrush(QtGui.QColor(54, 50, 168))
-                qp.drawEllipse(x - radius, y - radius, radius, radius)
+                qp.drawEllipse(x - diameter, y - diameter, diameter, diameter)
             else:
                 qp.setBrush(QtGui.QColor(color[0], color[1], color[2]))
                 if form == 'rect':
-                    qp.drawRect(x - radius, y - radius, radius, radius)
+                    qp.drawRect(x - diameter, y - diameter, diameter, diameter)
                 elif form == 'triangle':
                     points = [
-                        QPoint(x - radius, y - radius),
-                        QPoint(x - radius * 2, y - radius),
-                        QPoint(x - radius, y - radius * 2),
+                        QPoint(x - diameter, y - diameter),
+                        QPoint(x - diameter * 2, y - diameter),
+                        QPoint(x - diameter, y - diameter * 2),
                     ]
                     poly = QPolygon(points)
                     qp.drawPolygon(poly)
                 elif form == 'circle':
-                    qp.drawEllipse(x - radius, y - radius, radius, radius)
+                    qp.drawEllipse(x - diameter, y - diameter, diameter, diameter)
 
 
 def main():
@@ -241,7 +243,7 @@ def main():
 def get_setup_values(filename):
     name, extension = os.path.splitext(filename)
     user_id = 0
-    radius = []
+    diameter = []
     repetitions = 0
     amount = 0
     improvement = False
@@ -249,21 +251,21 @@ def get_setup_values(filename):
         config = configparser.ConfigParser()
         config.read(filename)
         user_id = config['default']['user']
-        radius = []
-        rad = (config['default']['radius']).split()
+        diameter = []
+        rad = (config['default']['diameter']).split()
         for i in rad:
-            radius.append(int(i))
+            diameter.append(int(i))
         repetitions = int(config['default']['repetitions'])
         amount = int(config['default']['amount'])
         improvement = config['default']['improvement']
     elif extension == '.json':
         json_file = json.loads(open(filename).readline())
         user_id = json_file['user']
-        radius = json_file['radius']
+        diameter = json_file['diameter']
         repetitions = json_file['repetitions']
         amount = json_file['amount']
         improvement = json_file['improvement']
-    return user_id, radius, repetitions, amount, improvement
+    return user_id, diameter, repetitions, amount, improvement
 
 
 if __name__ == '__main__':

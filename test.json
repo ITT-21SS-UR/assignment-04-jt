@@ -1,1 +1,1 @@
-{"user": 2, "radius": [50, 75, 100, 125], "repetitions" : 5, "amount": 20, "improvement":  false}
+{"user": 2, "diameter": [50, 75, 100, 125], "repetitions" : 5, "amount": 20, "improvement":  false}
