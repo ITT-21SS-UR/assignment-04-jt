@@ -12,17 +12,16 @@ import configparser
 import json
 from pointing_technique import Improvement
 
-""" .ini file looks like this:
-[default]
-user = 1
-diameter = 50 75 100 125
-repetitions = 5
-amount = 20
-improvement = True
+# all work was contributed evenly between the two group members
 
-.json file looks like this:
-{"user": 1, "diameter": [50, 75, 100, 125], "repetitions" : 5, "amount": 20, "improvement": true}
-"""
+example_ini = '[default]\n' \
+           'user = 1\n' \
+           'diameter = 50 75 100 125\n' \
+           'repetitions = 5\n' \
+           'amount = 20\n' \
+           'improvement = True'
+
+example_json = '{"user": 1, "diameter": [50, 75, 100, 125], "repetitions" : 5, "amount": 20, "improvement": true}'
 
 
 class ExperimentModel(object):
@@ -37,11 +36,10 @@ class ExperimentModel(object):
         self.start_pointer = ()
         self.conditions = (1, 2, 3)
         self.forms = []
-        # possibilities = list(itertools.product(diameter, amount))
         for i in self.conditions:
             for y in range(repetitions):
-                curr_rad = random.choice(diameter)
-                self.forms.append((i, curr_rad, amount))
+                curr_diam = random.choice(diameter)
+                self.forms.append((i, curr_diam, amount))
         random.shuffle(self.forms)
         self.cycle = 0
         sys.stdout.write("timestamp (ISO),user_id,condition,diameter,amount,completion_time (ms),"
@@ -109,7 +107,6 @@ class ExperimentTest(QtWidgets.QWidget):
     def init_ui(self):
         self.showMaximized()
         self.setWindowTitle('Click Test')
-        # widget should accept focus by click and tab key
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setMouseTracking(True)
         self.show()
@@ -232,14 +229,16 @@ class ExperimentTest(QtWidgets.QWidget):
 def main():
     app = QtWidgets.QApplication(sys.argv)
     if len(sys.argv) < 2:
-        sys.stderr.write("No file given")
+        sys.stderr.write("Usage: python3 pointing_experiment.py filename > data.csv\nFiles can be: \n"
+                         ".ini with this layout: \n%s \n\nor .json with this layout: \n%s \n"
+                         % (example_ini, example_json))
         sys.exit(1)
-    # values = get_setup_values(sys.argv[1])
     model = ExperimentModel(*get_setup_values(sys.argv[1]))
     experiment = ExperimentTest(model)
     sys.exit(app.exec_())
 
 
+# reads the values for the experiment from the setup-file
 def get_setup_values(filename):
     name, extension = os.path.splitext(filename)
     user_id = 0

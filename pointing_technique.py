@@ -2,6 +2,8 @@
 
 import math
 
+# all work was contributed evenly between the two group members
+
 """ To improve the pointing via mouse we implemented this method.
 For this the function filter() gets the position of the target and the current cursor position.
 The coordinates of the target are in their right down corner. Because our targets are always circles, 
